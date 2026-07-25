@@ -16,7 +16,7 @@ Everything runs locally in Flask — nothing is uploaded anywhere.
 cd home-file-analyzer
 python3 -m venv venv
 source venv/bin/activate
-pip install flask
+pip install -r requirements.txt
 ```
 
 **Windows (PowerShell):**
@@ -25,7 +25,7 @@ pip install flask
 cd home-file-analyzer
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-pip install flask
+pip install -r requirements.txt
 ```
 
 **Windows (Command Prompt):**
@@ -34,7 +34,7 @@ pip install flask
 cd home-file-analyzer
 python -m venv venv
 venv\Scripts\activate.bat
-pip install flask
+pip install -r requirements.txt
 ```
 
 **Git Bash (Windows):**
@@ -43,7 +43,7 @@ pip install flask
 cd home-file-analyzer
 python -m venv venv
 source venv/Scripts/activate
-pip install flask
+pip install -r requirements.txt
 ```
 
 ## Run
@@ -99,3 +99,12 @@ cross-platform.
 - Nothing is uploaded or sent anywhere — it only reads file metadata (names,
   sizes, modified dates) from folders you choose, on your own machine.
 - To stop the server, go back to the terminal and press `Ctrl+C`.
+
+## Contributing
+
+Contributions are welcome! Please check out [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to get started, submit pull requests, or report issues. Please also adhere to our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
