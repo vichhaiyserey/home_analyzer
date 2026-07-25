@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home File Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F6F3;
+    --paper:#FFFFFF;
+    --ink:#14181C;
+    --ink-soft:#565D5F;
+    --border:#E1E4DF;
+    --teal:#1F6F5C;
+    --teal-soft:#E7F0ED;
+    --clay:#C4622D;
+    --clay-soft:#FBEBE0;
+    --slate:#3A5A8C;
+    --amber:#C98A2C;
+    --plum:#7C5295;
+    --sage:#6B8F71;
+    --gray:#9A9D97;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', -apple-system, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono', monospace;}
+
+  header.top{
+    background:var(--ink);
+    color:#F5F6F3;
+    padding:22px 28px;
+  }
+  header.top .wrap{
+    max-width:1040px;
+    margin:0 auto;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  header.top h1{
+    font-size:19px;
+    font-weight:600;
+    margin:0;
+    letter-spacing:0.2px;
+  }
+  header.top .tag{
+    font-size:12.5px;
+    color:#AEB4B0;
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  main{
+    max-width:1040px;
+    margin:0 auto;
+    padding:28px 28px 60px;
+  }
+
+  /* --- scan controls --- */
+  .scan-box{
+    background:var(--paper);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:18px 20px;
+  }
+  .scan-row{
+    display:flex;
+    gap:10px;
+  }
+  .scan-row input[type=text]{
+    flex:1;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13.5px;
+    padding:11px 13px;
+    border:1px solid var(--border);
+    border-radius:7px;
+    background:#FBFBFA;
+    color:var(--ink);
+    outline:none;
+  }
+  .scan-row input[type=text]:focus{
+    border-color:var(--teal);
+    background:#fff;
+  }
+  .scan-row button{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    padding:0 20px;
+    border:none;
+    border-radius:7px;
+    background:var(--teal);
+    color:#fff;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .scan-row button:hover{background:#195b4b;}
+  .scan-row button:disabled{background:#9DBEB5; cursor:default;}
+
+  .controls-bottom{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-top:12px;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .shortcuts{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .chip{
+    font-size:12px;
+    font-family:'IBM Plex Mono', monospace;
+    padding:5px 11px;
+    border-radius:100px;
+    border:1px solid var(--border);
+    background:#FBFBFA;
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .chip:hover{border-color:var(--teal); color:var(--teal);}
+
+  .toggle{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    user-select:none;
+  }
+  .toggle input{accent-color:var(--teal);}
+
+  .error-msg{
+    display:none;
+    margin-top:14px;
+    padding:10px 14px;
+    background:var(--clay-soft);
+    border:1px solid #EAC3AC;
+    color:#8A3F16;
+    border-radius:7px;
+    font-size:13px;
+  }
+
+  /* --- results --- */
+  #results{display:none; margin-top:26px;}
+
+  .root-line{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-bottom:16px;
+  }
+  .root-line b{color:var(--ink);}
+
+  /* segmented storage bar */
+  .storage-bar{
+    display:flex;
+    width:100%;
+    height:22px;
+    border-radius:6px;
+    overflow:hidden;
+    border:1px solid var(--border);
+    background:#EDEEEA;
+  }
+  .storage-bar .seg{height:100%;}
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    margin:12px 0 26px;
+  }
+  .legend .item{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:12px;
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--ink-soft);
+  }
+  .dot{width:9px; height:9px; border-radius:2px; flex-shrink:0;}
+
+  /* stat cards */
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:12px;
+    margin-bottom:28px;
+  }
+  .stat-card{
+    background:var(--paper);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:16px 16px;
+  }
+  .stat-card .label{
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .stat-card .value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:22px;
+    font-weight:600;
+  }
+  .stat-card.warn .value{color:var(--clay);}
+
+  /* two column layout */
+  .grid{
+    display:grid;
+    grid-template-columns:340px 1fr;
+    gap:20px;
+    align-items:start;
+  }
+  @media (max-width:760px){
+    .grid{grid-template-columns:1fr;}
+    .stats{grid-template-columns:repeat(2,1fr);}
+  }
+
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .panel h2{
+    font-size:13px;
+    font-weight:600;
+    margin:0;
+    padding:13px 16px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .panel h2 span.count{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:400;
+    color:var(--ink-soft);
+    font-size:12px;
+  }
+
+  table.ext-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  table.ext-table td{padding:9px 16px; border-bottom:1px solid var(--border);}
+  table.ext-table tr:last-child td{border-bottom:none;}
+  table.ext-table .ext-name{font-family:'IBM Plex Mono', monospace; display:flex; align-items:center; gap:8px;}
+  table.ext-table .ext-size{text-align:right; font-family:'IBM Plex Mono', monospace; color:var(--ink-soft); white-space:nowrap;}
+
+  /* tabs */
+  .tabs{display:flex; border-bottom:1px solid var(--border);}
+  .tab-btn{
+    flex:1;
+    padding:12px 10px;
+    text-align:center;
+    font-size:12.5px;
+    font-weight:600;
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+  }
+  .tab-btn.active{color:var(--teal); border-bottom-color:var(--teal);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  .file-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:10px 16px;
+    border-bottom:1px solid var(--border);
+    font-size:12.5px;
+  }
+  .file-row:last-child{border-bottom:none;}
+  .file-row .fname{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .file-row .fpath{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    color:var(--ink-soft);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .file-row .fmeta{
+    text-align:right;
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--ink-soft);
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .file-row .fmeta b{color:var(--ink); font-weight:600;}
+
+  .empty-note{padding:18px 16px; font-size:12.5px; color:var(--ink-soft);}
+
+  .stale-callout{
+    display:none;
+    margin-bottom:20px;
+    padding:12px 16px;
+    background:var(--clay-soft);
+    border:1px solid #EAC3AC;
+    border-radius:var(--radius);
+    font-size:13px;
+    color:#8A3F16;
+  }
+  .stale-callout b{font-family:'IBM Plex Mono', monospace;}
+
+  .loading{
+    display:none;
+    margin-top:20px;
+    font-size:13px;
+    color:var(--ink-soft);
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  footer{
+    max-width:1040px;
+    margin:0 auto;
+    padding:0 28px 40px;
+    font-size:11.5px;
+    color:var(--ink-soft);
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <h1>Home File Analyzer</h1>
+    <span class="tag" id="headerTag">local scan · nothing leaves your machine</span>
+  </div>
+</header>
+
+<main>
+
+  <div class="scan-box">
+    <div class="scan-row">
+      <input type="text" id="pathInput" class="mono" value="{{ home }}" placeholder="/Users/you/Downloads" autocomplete="off" title="Use forward slashes (/) or backslashes (\) — both work. Supports ~/home paths too.">
+      <button id="scanBtn" onclick="runScan()">Scan</button>
+    </div>
+    <div class="controls-bottom">
+      <div class="shortcuts">
+        {% for s in shortcuts %}
+        <span class="chip" onclick="setPath('{{ s.path }}')">{{ s.label }}</span>
+        {% endfor %}
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="excludeSystem" checked>
+        Skip hidden &amp; system folders
+      </label>
+    </div>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <div class="loading" id="loading">scanning…</div>
+
+  <div id="results">
+
+    <div class="root-line">Last scanned: <b id="rootPath"></b></div>
+
+    <div class="storage-bar" id="storageBar"></div>
+    <div class="legend" id="legend"></div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="label">Total size</div>
+        <div class="value" id="statSize">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Files</div>
+        <div class="value" id="statFiles">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Folders</div>
+        <div class="value" id="statFolders">—</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="label">Untouched 1yr+</div>
+        <div class="value" id="statStale">—</div>
+      </div>
+    </div>
+
+    <div class="stale-callout" id="staleCallout"></div>
+
+    <div class="grid">
+      <div class="panel">
+        <h2>By file type <span class="count" id="extCount"></span></h2>
+        <table class="ext-table" id="extTable"><tbody></tbody></table>
+      </div>
+
+      <div class="panel">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="largest" onclick="switchTab('largest')">Largest</button>
+          <button class="tab-btn" data-tab="recent" onclick="switchTab('recent')">Recently changed</button>
+          <button class="tab-btn" data-tab="stale" onclick="switchTab('stale')">Old &amp; heavy</button>
+        </div>
+        <div class="tab-panel active" id="tab-largest"></div>
+        <div class="tab-panel" id="tab-recent"></div>
+        <div class="tab-panel" id="tab-stale"></div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<footer>
+  Reads file names, sizes, and modified dates only — from folders you choose. Nothing is uploaded or sent anywhere.
+</footer>
+
+<script>
+const PALETTE = ['#1F6F5C', '#3A5A8C', '#C98A2C', '#C4622D', '#7C5295', '#6B8F71', '#9A9D97', '#5B6B7A'];
+
+let PLATFORM_INFO = { os: '?', shell: '?' };
+
+// Fetch platform info on load
+async function initPlatform(){
+  try{
+    const res = await fetch('/platform');
+    PLATFORM_INFO = await res.json();
+    
+    // Update header tag with OS/shell info
+    const tag = document.getElementById('headerTag');
+    tag.textContent = `${PLATFORM_INFO.os} · ${PLATFORM_INFO.shell} · local scan`;
+  } catch(err){
+    console.warn('Could not fetch platform info');
+  }
+}
+
+// Normalize path — accept both / and \ on any platform
+// Python's Path.resolve() handles both transparently
+function normalizePath(p){
+  if(!p) return '';
+  // Preserve the path as-is; Python handles forward/back slashes on all platforms
+  return p.trim();
+}
+
+// Expand ~ to home folder (works on all platforms via backend)
+function expandPath(p){
+  if(p.startsWith('~')){
+    return p.replace('~', PLATFORM_INFO.home);
+  }
+  return p;
+}
+
+function setPath(p){
+  document.getElementById('pathInput').value = p;
+  runScan();
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function escapeHtml(s){
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function renderFileList(containerId, files, emptyText){
+  const el = document.getElementById(containerId);
+  if(!files || files.length === 0){
+    el.innerHTML = `<div class="empty-note">${emptyText}</div>`;
+    return;
+  }
+  el.innerHTML = files.map(f => `
+    <div class="file-row">
+      <div class="fname">
+        ${escapeHtml(f.name)}
+        <span class="fpath">${escapeHtml(f.path)}</span>
+      </div>
+      <div class="fmeta"><b>${f.size_h}</b><br>${f.mtime_h}</div>
+    </div>
+  `).join('');
+}
+
+function renderStorageBar(extBreakdown){
+  const bar = document.getElementById('storageBar');
+  const legend = document.getElementById('legend');
+  bar.innerHTML = '';
+  legend.innerHTML = '';
+  extBreakdown.forEach((e, i) => {
+    const color = PALETTE[i % PALETTE.length];
+    const seg = document.createElement('div');
+    seg.className = 'seg';
+    seg.style.width = Math.max(e.pct, 0.6) + '%';
+    seg.style.background = color;
+    seg.title = `.${e.ext} — ${e.size_h}`;
+    bar.appendChild(seg);
+
+    const item = document.createElement('div');
+    item.className = 'item';
+    item.innerHTML = `<span class="dot" style="background:${color}"></span>.${escapeHtml(e.ext)} · ${e.pct}%`;
+    legend.appendChild(item);
+  });
+}
+
+function renderExtTable(extBreakdown){
+  const tbody = document.querySelector('#extTable tbody');
+  document.getElementById('extCount').textContent = extBreakdown.length + ' types';
+  tbody.innerHTML = extBreakdown.map((e, i) => `
+    <tr>
+      <td class="ext-name"><span class="dot" style="background:${PALETTE[i % PALETTE.length]}"></span>.${escapeHtml(e.ext)}
+        <span style="color:var(--ink-soft); font-family:'IBM Plex Sans',sans-serif;">(${e.count})</span></td>
+      <td class="ext-size">${e.size_h}</td>
+    </tr>
+  `).join('');
+}
+
+async function runScan(){
+  let path = document.getElementById('pathInput').value.trim();
+  if(!path){ return; }
+  
+  // Normalize and expand path for all platforms
+  path = normalizePath(path);
+  path = expandPath(path);
+  
+  const excludeSystem = document.getElementById('excludeSystem').checked;
+  const btn = document.getElementById('scanBtn');
+  const errorMsg = document.getElementById('errorMsg');
+  const loading = document.getElementById('loading');
+  const results = document.getElementById('results');
+
+  errorMsg.style.display = 'none';
+  results.style.display = 'none';
+  loading.style.display = 'block';
+  btn.disabled = true;
+  btn.textContent = 'Scanning…';
+
+  try{
+    const res = await fetch('/scan', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({path, exclude_system: excludeSystem})
+    });
+    const data = await res.json();
+
+    if(!res.ok){
+      let msg = data.error || 'Something went wrong.';
+      
+      // Provide OS-specific path examples for common errors
+      if(msg.includes('doesn\'t exist') || msg.includes('isn\'t a folder')){
+        let examples = '';
+        if(PLATFORM_INFO.os === 'Windows'){
+          examples = ' — try: C:\\Users\\YourName\\Downloads  or  ~/Downloads';
+        } else if(PLATFORM_INFO.os === 'macOS'){
+          examples = ' — try: ~/Downloads  or  ~/Documents';
+        } else {
+          examples = ' — try: ~/Downloads  or  ~/Documents  or  ~/snap';
+        }
+        msg = msg + examples;
+      }
+      
+      errorMsg.textContent = msg;
+      errorMsg.style.display = 'block';
+      return;
+    }
+
+    document.getElementById('rootPath').textContent = data.root;
+    document.getElementById('statSize').textContent = data.total_size_h;
+    document.getElementById('statFiles').textContent = data.total_files.toLocaleString();
+    document.getElementById('statFolders').textContent = data.total_folders.toLocaleString();
+    document.getElementById('statStale').textContent = data.stale_total_size_h;
+
+    renderStorageBar(data.ext_breakdown);
+    renderExtTable(data.ext_breakdown);
+    renderFileList('tab-largest', data.largest_files, 'No files found.');
+    renderFileList('tab-recent', data.recent_files, 'No files found.');
+    renderFileList('tab-stale', data.stale_files, 'Nothing untouched for a year or more — nicely kept.');
+
+    const staleCallout = document.getElementById('staleCallout');
+    if(data.stale_count > 0){
+      staleCallout.style.display = 'block';
+      staleCallout.innerHTML = `<b>${data.stale_total_size_h}</b> sits in ${data.stale_count.toLocaleString()} files untouched for over a year. Check the "Old &amp; heavy" tab before you clean anything up.`;
+    } else {
+      staleCallout.style.display = 'none';
+    }
+
+    results.style.display = 'block';
+  } catch(err){
+    errorMsg.textContent = 'Could not reach the scanner. Is analyzer.py still running?';
+    errorMsg.style.display = 'block';
+  } finally {
+    loading.style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = 'Scan';
+  }
+}
+
+// Initialize platform detection and auto-scan on load
+window.addEventListener('DOMContentLoaded', async () => {
+  await initPlatform();
+  runScan();
+});
+</script>
+
+</body>
+</html>

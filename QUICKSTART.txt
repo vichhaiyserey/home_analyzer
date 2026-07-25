@@ -1,0 +1,125 @@
+═══════════════════════════════════════════════════════════════════════════════
+  HOME FILE ANALYZER — Quick Start
+═══════════════════════════════════════════════════════════════════════════════
+
+WHAT IT DOES
+──────────────────────────────────────────────────────────────────────────────
+Scan your folders and see:
+  • Which file types take up the most space
+  • Your largest individual files  
+  • Files you've changed recently
+  • Old files untouched for 1+ year (cleanup candidates)
+
+Works on: Windows, macOS, Linux
+Works on: PowerShell, Command Prompt, Git Bash, bash, zsh, Fish, etc.
+Nothing is uploaded anywhere — runs 100% locally.
+
+
+INSTALL (Any OS, Any Shell)
+──────────────────────────────────────────────────────────────────────────────
+
+1. Make sure Python 3 is installed:
+   $ python3 --version
+
+2. Install Flask:
+   $ pip install flask
+
+   Or with venv (recommended):
+   $ python3 -m venv venv
+   $ source venv/bin/activate              # On Windows: venv\Scripts\activate
+   $ pip install flask
+
+
+RUN
+──────────────────────────────────────────────────────────────────────────────
+
+1. Start the analyzer:
+   $ python3 analyzer.py
+
+2. Open your browser:
+   http://127.0.0.1:5050
+
+3. Hit Ctrl+C in the terminal to stop
+
+
+HOW TO USE
+──────────────────────────────────────────────────────────────────────────────
+
+• The app auto-scans your home folder on load
+• Click a shortcut (Home, Downloads, Documents, Desktop) for quick jumps
+• Type any folder path:
+  - macOS/Linux:   ~/Downloads   or   /Users/you/Documents
+  - Windows:       C:\Users\You\Downloads   or   ~/Downloads (both work!)
+  - Relative:      ./subfolder
+
+• Check "Skip hidden & system folders" (default) to hide clutter
+  Uncheck to see everything (including .git, node_modules, AppData, etc.)
+
+• Three tabs after scanning:
+  - Largest:  Files taking up the most space
+  - Recently changed:  Files you've modified recently
+  - Old & heavy:  Haven't touched in 1+ year (candidates for cleanup)
+
+
+FEATURES
+──────────────────────────────────────────────────────────────────────────────
+
+✓ Cross-platform (Windows, macOS, Linux) with no setup differences
+✓ Cross-shell (bash, zsh, PowerShell, cmd.exe, Git Bash, Fish, etc.)
+✓ Auto-detects your OS and shell (shown in header)
+✓ Accepts paths in any format — forward or backslashes, tilde expansion
+✓ Smart folder exclusions for all platforms (dev clutter, system folders)
+✓ Human-readable sizes (B, KB, MB, GB, TB)
+✓ Color-coded storage breakdown by file type
+✓ One-page web UI — no installation needed beyond Flask
+
+
+EXAMPLES
+──────────────────────────────────────────────────────────────────────────────
+
+macOS:
+  python3 analyzer.py
+  # Scans ~/
+  # Click "Downloads" shortcut to scan ~/Downloads
+  # Type ~/Library to see what's in there
+  
+Windows (PowerShell):
+  python analyzer.py
+  # Scans C:\Users\YourName\
+  # Click "Downloads" shortcut
+  # Type C:\Users\YourName\AppData\Local to see cache sizes
+
+Linux:
+  python3 analyzer.py
+  # Scans ~/
+  # Click "Documents" shortcut
+  # Type ~/.local to see hidden local config/cache
+
+
+TROUBLESHOOTING
+──────────────────────────────────────────────────────────────────────────────
+
+Q: "Command not found: python3"
+A: Install Python 3 from python.org or your package manager
+
+Q: "ModuleNotFoundError: No module named 'flask'"
+A: Run:  pip install flask
+
+Q: "Permission denied" or "Can't open [folder]"
+A: Windows/macOS/Linux have restrictions on some system folders
+   (AppData, Library, /etc, /root, etc.). This is normal.
+
+Q: Can't reach http://127.0.0.1:5050
+A: Check that the terminal shows "running at http://127.0.0.1:5050"
+   If not, the server didn't start. Check for Flask installation.
+
+Q: Scan is slow on a huge folder
+A: Large folders (100k+ files) take a few seconds. This is normal.
+   Consider scanning a subfolder instead.
+
+
+DOCS
+──────────────────────────────────────────────────────────────────────────────
+
+README.md  — Full setup & usage guide
+FEATURES.md — Detailed cross-platform implementation details
