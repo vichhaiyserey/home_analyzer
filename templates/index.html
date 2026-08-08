@@ -34,6 +34,141 @@
   }
   .mono{font-family:'IBM Plex Mono', monospace;}
 
+  /* --- delete toolbar --- */
+  #deleteToolbar{
+    display:none;
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    background:var(--clay);
+    color:#fff;
+    padding:14px 28px;
+    box-shadow:0 -2px 12px rgba(0,0,0,.12);
+    z-index:100;
+  }
+  #deleteToolbar.visible{display:flex;}
+  #deleteToolbar .toolbar-wrap{
+    max-width:1040px;
+    margin:0 auto;
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:14px;
+  }
+  #deleteToolbar .toolbar-left{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    flex:1;
+  }
+  #deleteToolbar .toolbar-right{
+    display:flex;
+    gap:10px;
+  }
+  #deleteToolbar .count{
+    font-weight:600;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  #deleteToolbar button{
+    padding:9px 16px;
+    border:none;
+    border-radius:6px;
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  #deleteToolbar .cancel-btn{
+    background:rgba(255,255,255,.2);
+    color:#fff;
+  }
+  #deleteToolbar .cancel-btn:hover{background:rgba(255,255,255,.3);}
+  #deleteToolbar .delete-btn{
+    background:#fff;
+    color:var(--clay);
+  }
+  #deleteToolbar .delete-btn:hover{background:#FFE8D4;}
+
+  /* --- confirmation modal --- */
+  .modal-overlay{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    background:rgba(0,0,0,.5);
+    z-index:200;
+    align-items:center;
+    justify-content:center;
+  }
+  .modal-overlay.visible{display:flex;}
+  .modal-box{
+    background:#fff;
+    border-radius:12px;
+    padding:28px;
+    max-width:480px;
+    box-shadow:0 10px 40px rgba(0,0,0,.2);
+  }
+  .modal-box h3{
+    margin:0 0 10px;
+    font-size:18px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .modal-box .warning{
+    background:var(--clay-soft);
+    border:1px solid #EAC3AC;
+    color:#8A3F16;
+    padding:12px 14px;
+    border-radius:7px;
+    font-size:13px;
+    margin:14px 0;
+  }
+  .modal-box .delete-list{
+    max-height:200px;
+    overflow-y:auto;
+    background:#F5F6F3;
+    border:1px solid var(--border);
+    border-radius:7px;
+    padding:10px;
+    margin:14px 0;
+    font-size:12px;
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--ink-soft);
+  }
+  .modal-box .delete-list div{
+    padding:6px;
+    word-break:break-all;
+  }
+  .modal-box .modal-actions{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+  }
+  .modal-box .modal-actions button{
+    flex:1;
+    padding:11px 14px;
+    border:none;
+    border-radius:7px;
+    font-weight:600;
+    font-size:13.5px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .modal-box .modal-actions .modal-cancel{
+    background:var(--border);
+    color:var(--ink);
+  }
+  .modal-box .modal-actions .modal-cancel:hover{background:#D4D8D0;}
+  .modal-box .modal-actions .modal-confirm{
+    background:var(--clay);
+    color:#fff;
+  }
+  .modal-box .modal-actions .modal-confirm:hover{background:#B84D1E;}
+
   header.top{
     background:var(--ink);
     color:#F5F6F3;
@@ -283,6 +418,16 @@
     align-items:center;
     gap:10px;
     padding:10px 16px;
+    transition:background .1s ease;
+  }
+  .file-row.selected{background:var(--teal-soft);}
+  .file-row input[type=checkbox]{
+    accent-color:var(--teal);
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .file-row:hover{background:#F9F9F7;}
+  .file-row.selected:hover{background:var(--teal-soft);}
     border-bottom:1px solid var(--border);
     font-size:12.5px;
   }
@@ -423,6 +568,37 @@
 
 </main>
 
+<!-- Delete toolbar (appears when files selected) -->
+<div id="deleteToolbar">
+  <div class="toolbar-wrap">
+    <div class="toolbar-left">
+      <span class="count"><span id="selectedCount">0</span> file<span id="selectedPlural">s</span> selected</span>
+      <span style="color:rgba(255,255,255,.6);">·</span>
+      <span style="font-size:12px; opacity:.9;"><span id="selectedSize">0 B</span> total</span>
+    </div>
+    <div class="toolbar-right">
+      <button class="cancel-btn" onclick="clearSelection()">Cancel</button>
+      <button class="delete-btn" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal-box">
+    <h3>⚠️ Confirm Deletion</h3>
+    <p style="color:var(--ink-soft); font-size:13.5px; margin:0 0 14px;">You're about to permanently delete these files. This cannot be undone.</p>
+    <div class="warning">
+      <b>Permanently delete <span id="modalCount">0</span> file<span id="modalPlural">s</span></b> (<span id="modalSize">0 B</span>)?
+    </div>
+    <div class="delete-list" id="deleteListPreview"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeDeleteModal()">Cancel</button>
+      <button class="modal-confirm" onclick="executeDelete()">Yes, delete permanently</button>
+    </div>
+  </div>
+</div>
+
 <footer>
   Reads file names, sizes, and modified dates only — from folders you choose. Nothing is uploaded or sent anywhere.
 </footer>
@@ -431,6 +607,7 @@
 const PALETTE = ['#1F6F5C', '#3A5A8C', '#C98A2C', '#C4622D', '#7C5295', '#6B8F71', '#9A9D97', '#5B6B7A'];
 
 let PLATFORM_INFO = { os: '?', shell: '?' };
+let SELECTED_FILES = new Map(); // Map of filePath -> {size, name}
 
 // Fetch platform info on load
 async function initPlatform(){
@@ -479,21 +656,192 @@ function escapeHtml(s){
   return div.innerHTML;
 }
 
+function toggleFileSelection(filePath, size, name, checkbox){
+  if(checkbox.checked){
+    SELECTED_FILES.set(filePath, {size, name});
+  } else {
+    SELECTED_FILES.delete(filePath);
+  }
+  updateToolbar();
+  
+  // Update visual state of row
+  const rows = document.querySelectorAll('.file-row');
+  rows.forEach(row => {
+    const ckbox = row.querySelector('input[type=checkbox]');
+    if(ckbox && ckbox.dataset.path === filePath){
+      row.classList.toggle('selected', checkbox.checked);
+    }
+  });
+}
+
+function clearSelection(){
+  SELECTED_FILES.clear();
+  document.querySelectorAll('.file-row input[type=checkbox]').forEach(cb => {
+    cb.checked = false;
+  });
+  document.querySelectorAll('.file-row').forEach(r => r.classList.remove('selected'));
+  updateToolbar();
+}
+
+function updateToolbar(){
+  const toolbar = document.getElementById('deleteToolbar');
+  const count = SELECTED_FILES.size;
+  
+  if(count === 0){
+    toolbar.classList.remove('visible');
+    return;
+  }
+  
+  toolbar.classList.add('visible');
+  
+  // Update count and size
+  let totalSize = 0;
+  SELECTED_FILES.forEach(f => totalSize += f.size);
+  
+  document.getElementById('selectedCount').textContent = count;
+  document.getElementById('selectedPlural').textContent = count === 1 ? '' : 's';
+  document.getElementById('selectedSize').textContent = human_size(totalSize);
+}
+
+function confirmDelete(){
+  const modal = document.getElementById('deleteModal');
+  const count = SELECTED_FILES.size;
+  
+  // Build preview list
+  let totalSize = 0;
+  let preview = '';
+  let idx = 0;
+  for(let [path, file] of SELECTED_FILES){
+    if(idx < 10){
+      preview += `<div>${escapeHtml(file.name)}</div>`;
+    }
+    totalSize += file.size;
+    idx++;
+  }
+  if(idx > 10){
+    preview += `<div style="color:var(--gray); font-style:italic;">+ ${idx - 10} more file${idx - 10 === 1 ? '' : 's'}</div>`;
+  }
+  
+  // Update modal
+  document.getElementById('modalCount').textContent = count;
+  document.getElementById('modalPlural').textContent = count === 1 ? '' : 's';
+  document.getElementById('modalSize').textContent = human_size(totalSize);
+  document.getElementById('deleteListPreview').innerHTML = preview;
+  
+  modal.classList.add('visible');
+}
+
+function closeDeleteModal(){
+  document.getElementById('deleteModal').classList.remove('visible');
+}
+
+async function executeDelete(){
+  const modal = document.getElementById('deleteModal');
+  const toolbar = document.getElementById('deleteToolbar');
+  const errorMsg = document.getElementById('errorMsg');
+  const paths = Array.from(SELECTED_FILES.keys());
+  
+  // Disable confirm button during deletion
+  const confirmBtn = document.querySelector('.modal-confirm');
+  const originalText = confirmBtn.textContent;
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Deleting…';
+  
+  try{
+    const res = await fetch('/delete', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({files: paths})
+    });
+    const data = await res.json();
+    
+    if(!res.ok){
+      throw new Error(data.error || 'Deletion failed');
+    }
+    
+    // Success: show message
+    const deleted = data.count_deleted || 0;
+    const failed = data.count_failed || 0;
+    
+    closeDeleteModal();
+    SELECTED_FILES.clear();
+    updateToolbar();
+    
+    // Clear checkboxes from UI
+    document.querySelectorAll('.file-row input[type=checkbox]').forEach(cb => {
+      cb.checked = false;
+    });
+    document.querySelectorAll('.file-row').forEach(r => r.classList.remove('selected'));
+    
+    // Show result message
+    let message = `✓ Successfully deleted ${deleted} file${deleted === 1 ? '' : 's'} (${data.total_freed})`;
+    if(failed > 0){
+      message += ` — ${failed} file${failed === 1 ? '' : 's'} could not be deleted (see below)`;
+    }
+    
+    errorMsg.textContent = message;
+    errorMsg.style.display = 'block';
+    errorMsg.style.background = '#E7F0ED';
+    errorMsg.style.borderColor = '#B5D9D0';
+    errorMsg.style.color = '#195b4b';
+    
+    // If there were failures, show them
+    if(failed > 0 && data.failed){
+      console.warn('Failed deletions:', data.failed);
+      let failText = 'Failed to delete:\n';
+      data.failed.slice(0, 5).forEach(f => {
+        failText += `  • ${f.path}: ${f.reason}\n`;
+      });
+      if(data.failed.length > 5){
+        failText += `  ... and ${data.failed.length - 5} more`;
+      }
+      alert(failText);
+    }
+  } catch(err){
+    errorMsg.textContent = `Error during deletion: ${err.message}`;
+    errorMsg.style.display = 'block';
+    errorMsg.style.background = 'var(--clay-soft)';
+    errorMsg.style.borderColor = '#EAC3AC';
+    errorMsg.style.color = '#8A3F16';
+  } finally {
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = originalText;
+  }
+}
+
+function human_size(num_bytes){
+  let size = parseFloat(num_bytes);
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  for(let unit of units){
+    if(size < 1024) return `${size.toFixed(1)} ${unit}`;
+    size /= 1024;
+  }
+  return `${size.toFixed(1)} PB`;
+}
+
 function renderFileList(containerId, files, emptyText){
   const el = document.getElementById(containerId);
   if(!files || files.length === 0){
     el.innerHTML = `<div class="empty-note">${emptyText}</div>`;
     return;
   }
-  el.innerHTML = files.map(f => `
-    <div class="file-row">
+  el.innerHTML = files.map(f => {
+    const isSelected = SELECTED_FILES.has(f.path);
+    return `
+    <div class="file-row${isSelected ? ' selected' : ''}">
+      <input 
+        type="checkbox" 
+        data-path="${escapeHtml(f.path)}"
+        ${isSelected ? 'checked' : ''}
+        onchange="toggleFileSelection('${f.path.replace(/'/g, "\\'")}', ${f.size}, '${f.name.replace(/'/g, "\\'")}', this)"
+      >
       <div class="fname">
         ${escapeHtml(f.name)}
         <span class="fpath">${escapeHtml(f.path)}</span>
       </div>
       <div class="fmeta"><b>${f.size_h}</b><br>${f.mtime_h}</div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function renderStorageBar(extBreakdown){
@@ -608,6 +956,20 @@ async function runScan(){
     btn.textContent = 'Scan';
   }
 }
+
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape'){
+    closeDeleteModal();
+  }
+});
+
+// Close modal when clicking outside
+document.getElementById('deleteModal').addEventListener('click', (e) => {
+  if(e.target.id === 'deleteModal'){
+    closeDeleteModal();
+  }
+});
 
 // Initialize platform detection and auto-scan on load
 window.addEventListener('DOMContentLoaded', async () => {

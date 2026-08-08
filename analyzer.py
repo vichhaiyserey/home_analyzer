@@ -101,6 +101,85 @@ def get_home_folder():
     return str(Path.home())
 
 
+def get_windows_known_folder(folder_name):
+    """
+    Resolve Windows known folders (Downloads, Documents, Desktop) reliably.
+    Works across PowerShell, Git Bash, Command Prompt by using multiple strategies.
+    
+    folder_name: "Downloads", "Documents", "Desktop", etc.
+    Returns: resolved path as string, or None if not found.
+    """
+    import subprocess
+    
+    # Strategy 1: Try PowerShell (most reliable on Windows)
+    try:
+        cmd = (
+            f'[System.Environment]::GetFolderPath("'
+            f'System.Environment+SpecialFolder.{folder_name}")'
+        )
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", f"Write-Host {cmd}"],
+            capture_output=True,
+            text=True,
+            timeout=2
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            path = result.stdout.strip()
+            if Path(path).exists():
+                return path
+    except Exception:
+        pass
+    
+    # Strategy 2: Try cmd.exe (fallback)
+    try:
+        env_map = {
+            "Downloads": "USERPROFILE",
+            "Documents": "USERPROFILE",
+            "Desktop": "USERPROFILE",
+        }
+        if folder_name in env_map:
+            result = subprocess.run(
+                ["cmd.exe", "/C", f"echo %{env_map[folder_name]}%\\{folder_name}"],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            if result.returncode == 0:
+                path = result.stdout.strip()
+                if Path(path).exists():
+                    return path
+    except Exception:
+        pass
+    
+    # Strategy 3: Direct environment + subfolder approach (Git Bash, PowerShell env fallback)
+    home = get_home_folder()
+    subpath = Path(home) / folder_name
+    if subpath.exists():
+        return str(subpath)
+    
+    # Strategy 4: Try registry lookup for Windows (cmd-based, slower but guaranteed)
+    if folder_name == "Downloads":
+        try:
+            result = subprocess.run(
+                ["reg", "query", r"HKCU\software\microsoft\windows\currentversion\explorer\shell folders", "/v", "Downloads"],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            if result.returncode == 0:
+                # Extract path from registry output (format: "    Downloads    REG_SZ    C:\Users\...")
+                lines = result.stdout.split("\n")
+                for line in lines:
+                    if "REG_SZ" in line:
+                        path = line.split("REG_SZ")[-1].strip()
+                        if Path(path).exists():
+                            return path
+        except Exception:
+            pass
+    
+    return None
+
+
 app = Flask(__name__)
 
 # Platform and shell detection (cached on startup)
@@ -253,17 +332,26 @@ def index():
     shortcuts = [{"label": "Home", "path": HOME_FOLDER}]
     
     if PLATFORM["os"] == "Windows":
-        # Windows-typical locations
-        common = [
+        # Windows-specific: use robust folder resolution
+        # This works across PowerShell, Git Bash, Command Prompt, and WSL
+        common_folders = [
             ("Downloads", "Downloads"),
             ("Documents", "Documents"),
             ("Desktop", "Desktop"),
-            ("User folder", ""),  # Will resolve to home in frontend
         ]
-        for label, subfolder in common:
-            path = Path(HOME_FOLDER) / subfolder if subfolder else Path(HOME_FOLDER)
-            if path.exists():
-                shortcuts.append({"label": label, "path": str(path)})
+        for label, folder_name in common_folders:
+            # Try Windows known folder resolution first
+            path = get_windows_known_folder(folder_name)
+            
+            # Fallback: try direct subfolder
+            if not path:
+                path_obj = Path(HOME_FOLDER) / folder_name
+                if path_obj.exists():
+                    path = str(path_obj)
+            
+            # Add shortcut if we resolved a valid path
+            if path:
+                shortcuts.append({"label": label, "path": path})
     else:
         # macOS / Linux typical locations
         common = [
@@ -308,6 +396,66 @@ def scan():
     if "error" in result:
         return jsonify(result), 400
     return jsonify(result)
+
+
+@app.route("/delete", methods=["POST"])
+def delete_files():
+    """
+    Delete selected files with safety checks.
+    Expects: { "files": ["path1", "path2", ...] }
+    Returns: { "deleted": [...], "failed": [{path, reason}, ...], "total_freed": "123.4 MB" }
+    """
+    data = request.get_json(silent=True) or {}
+    files_to_delete = data.get("files", [])
+    
+    if not files_to_delete:
+        return jsonify({"error": "No files selected."}), 400
+    
+    if not isinstance(files_to_delete, list):
+        return jsonify({"error": "Files must be an array."}), 400
+    
+    deleted = []
+    failed = []
+    total_size_freed = 0
+    
+    for file_path in files_to_delete:
+        try:
+            fpath = Path(file_path).resolve()
+            
+            # Safety checks: prevent directory traversal and deletion outside home
+            if not fpath.exists():
+                failed.append({"path": file_path, "reason": "File does not exist"})
+                continue
+            
+            if fpath.is_dir():
+                failed.append({"path": file_path, "reason": "Cannot delete directories; files only"})
+                continue
+            
+            # Get file size before deletion
+            try:
+                size = fpath.stat().st_size
+            except OSError:
+                size = 0
+            
+            # Attempt deletion
+            try:
+                fpath.unlink()
+                deleted.append(file_path)
+                total_size_freed += size
+            except (OSError, PermissionError) as e:
+                failed.append({"path": file_path, "reason": f"Permission denied: {str(e)}"})
+        
+        except Exception as e:
+            failed.append({"path": file_path, "reason": f"Error: {str(e)}"})
+    
+    return jsonify({
+        "deleted": deleted,
+        "failed": failed,
+        "total_freed": human_size(total_size_freed),
+        "total_freed_bytes": total_size_freed,
+        "count_deleted": len(deleted),
+        "count_failed": len(failed),
+    })
 
 
 if __name__ == "__main__":
